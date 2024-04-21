@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { View, FlatList } from "react-native";
-import { Appbar, Card } from "react-native-paper";
+import React, { useState, useEffect  } from "react";
+import { View, FlatList, TouchableOpacity } from "react-native";
+import { Appbar, Card, Text } from 'react-native-paper';
+
 import firebase from "firebase/app";
 import "firebase/firestore";
 import { SocialModel } from "../../../../models/social.js";
+import { getFirestore, doc, onSnapshot, collection, query, orderBy } from "firebase/firestore"; 
 import { styles } from "./FeedScreen.styles";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { MainStackParamList } from "../MainStackScreen.js";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 /* HOW TYPESCRIPT WORKS WITH PROPS:
 
@@ -26,6 +29,7 @@ interface Props {
 
 export default function FeedScreen({ navigation }: Props) {
   // TODO: Initialize a list of SocialModel objects in state.
+  const[SocialModelInstances, setSocials ] = useState<SocialModel[]>([])
 
   /* TYPESCRIPT HINT: 
     When we call useState(), we can define the type of the state
@@ -47,25 +51,70 @@ export default function FeedScreen({ navigation }: Props) {
           load socials on this screen.
   */
 
+          useEffect(() => {
+            // Create a reference to the "socials" collection
+            const socialsRef = collection(getFirestore(), "socials");
+        
+            // Create a query for the socials collection, ordered by a particular key
+            const q = query(socialsRef, orderBy("eventName")); // Assuming "createdAt" is the field to order by
+        
+            // Subscribe to the query snapshot changes
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+              const socialsData: SocialModel[] = [];
+              snapshot.forEach((doc) => {
+                const social = doc.data() as SocialModel;
+                socialsData.push(social);
+              });
+              setSocials(socialsData);
+            });
+        
+            // Return a cleanup function to unsubscribe from the snapshot listener
+            return () => unsubscribe();
+          }, []); // Empty dependency array means this effect runs once after the first render
+        
+   
+   
+
   const renderItem = ({ item }: { item: SocialModel }) => {
-    // TODO: Return a Card corresponding to the social object passed in
+     // TODO: Return a Card corresponding to the social object passed in
     // to this function. On tapping this card, navigate to DetailScreen
     // and pass this social.
 
-    return null;
+
+    
+    return (
+ 
+      <SafeAreaView> 
+        <Card 
+        mode = "outlined"
+        onPress={() => navigation.navigate("DetailScreen", { social: item })}>
+        <Card.Cover source={{ uri: item.eventImage }} />
+        <Card.Title title={item.eventName} subtitle = <Text> {item.eventLocation} {new Date(item.eventDate).toLocaleDateString()} </Text> />
+        </Card>
+        </SafeAreaView>
+    );
   };
 
   const NavigationBar = () => {
     // TODO: Return an AppBar, with a title & a Plus Action Item that goes to the NewSocialScreen.
-    return null;
+    return (  
+      <View>
+        <Appbar.Header style={{ backgroundColor: '#FDAE44' }}>
+        <Appbar.Content title= "Socials" />
+        <Appbar.Action icon="plus" onPress={() => navigation.navigate("NewSocialScreen")} />
+        </Appbar.Header>
+    </View>
+    );
   };
 
   return (
     <>
-      {/* Embed your NavigationBar here. */}
-      <View style={styles.container}>
-        {/* Return a FlatList here. You'll need to use your renderItem method. */}
-      </View>
+      {NavigationBar()}
+      <FlatList
+        data={SocialModelInstances}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id} 
+      />
     </>
   );
 }

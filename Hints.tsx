@@ -88,7 +88,7 @@ const asyncAwaitNetworkRequests = async () => {
     eventDescription: eventDescription,
     eventImage: downloadURL,
   };
-  await setDoc(socialRef, socialDoc);
+  await setDoc(, socialDoc);
   console.log("Finished social creation.");
 };
 
